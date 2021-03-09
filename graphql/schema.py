@@ -8,7 +8,7 @@ import datetime
 import json
 
 TinyDB.table_class = SmartCacheTable
-db = TinyDB('../ledger_data/indy_mainnet_tinydb.json'
+db = TinyDB('../../indy-ledger-monitor/fetch-ledger-tx/ledger_data/indy_mainnet_tinydb.json'
             '', storage=CachingMiddleware(JSONStorage))
 
 
