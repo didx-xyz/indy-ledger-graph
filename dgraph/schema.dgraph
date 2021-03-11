@@ -1,0 +1,25 @@
+type User {
+    userID: ID!
+    name: String!
+    lastSignIn: DateTime
+    recentScores: [Float]
+    reputation: Int
+    active: Boolean,
+    tweets: [Tweet]
+}
+
+type Tweet {
+    text: String!
+}
+
+enum Tag {
+    GraphQL
+    Database
+    Question
+    ...
+}
+
+type Post {
+    ...
+    tags: [Tag!]!
+}
