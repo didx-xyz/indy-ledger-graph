@@ -368,9 +368,9 @@ class Query(ObjectType):
 
     did = Field(DID, did=String(required=True))
 
-    get_schema = Field(Schema, id=String())
+    schema = Field(Schema, id=String())
 
-    get_definition = Field(CredDef, id=String())
+    definition = Field(CredDef, id=String())
 
     dids = relay.ConnectionField(DIDConnection, endorser=String())
 
@@ -391,7 +391,7 @@ class Query(ObjectType):
         return nym_txns
 
 
-    def resolve_schemas(self, info, **kwargs):
+    def schemas(self, info, **kwargs):
         TXN = DbQuery()
         schema_txns = None
         ## TODO need a better way to handle multiple args into a single query
@@ -410,7 +410,7 @@ class Query(ObjectType):
 
         return schema_txns
 
-    def resolve_definitions(self, info, **kwargs):
+    def definitions(self, info, **kwargs):
         TXN = DbQuery()
         def_txns = db.search((TXN['data']['txn']['type'] == "101"))
 
