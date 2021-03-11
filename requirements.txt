@@ -4,3 +4,4 @@ starlette
 uvicorn
 tinydb
 tinydb_smartcache
+pydgraph
