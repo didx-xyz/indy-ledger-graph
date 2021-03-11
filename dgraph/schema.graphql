@@ -1,25 +1,67 @@
-type User {
-    userID: ID!
+enum DateTime
+
+interface Transaction {
+    id: ID!
+    seqNo: String!
+    type: String!
+    time: DateTime
+    endorser: DID
+    author: DID!
+
+}
+
+type DID implements Transaction {
+    id: ID!
+    seqNo: String!
+    type: String!
+    time: DateTime
+    endorser: DID
+    author: DID!
+    did: String!
+    verkey: String!
+    role: String
+    alias: String
+    attribs: [Attribute]!
+    authoredDefinitions: [CredDef]!
+    authoredSchema: [Schema]!
+    authoredDids: [DID]!
+    endorsedDefinitions: [CredDef]!
+    endorsedSchema: [Schema]!
+    endorsedDids: [DID]!
+
+}
+
+type CredDef implements Transaction {
+    id: ID!
+    seqNo: String!
+    type: String!
+    time: DateTime
+    endorser: DID
+    author: DID!
+    isRevocable: Boolean!
+    schema: Schema!
+}
+
+type Schema implements Transaction {
+    id: ID!
+    seqNo: String!
+    type: String!
+    time: DateTime
+    endorser: DID
+    author: DID!
     name: String!
-    lastSignIn: DateTime
-    recentScores: [Float]
-    reputation: Int
-    active: Boolean,
-    tweets: [Tweet]
+    attributeNames: [String]!
+    version: String!
+    definitions: [CredDef]!
 }
 
-type Tweet {
-    text: String!
-}
-
-enum Tag {
-    GraphQL
-    Database
-    Question
-    ...
-}
-
-type Post {
-    ...
-    tags: [Tag!]!
+type Attribute implements Transaction {
+    id: ID!
+    seqNo: String!
+    type: String!
+    time: DateTime
+    endorser: DID
+    author: DID!
+    endpoint: String
+    raw: String
 }
