@@ -449,3 +449,17 @@ class Query(ObjectType):
 
 schema = GqSchema(query=Query, types=[BaseTxn, DID, Schema, CredDef, DIDConnection, Attribute, TransactionConnection, SchemaConnection, CredDefConnection])
 
+introspection_dict = schema.introspect()
+
+schema_introspection = introspection_dict
+print(schema_introspection)
+
+# Print the schema in the console
+# print(json.dumps(introspection_dict))
+
+# Or save the schema into some file
+with open('schema.json', 'w') as fp:
+    json.dump(introspection_dict, fp)
+
+with open('schema.graphql', 'w') as fp:
+    fp.write(str(schema_introspection))
