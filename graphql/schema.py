@@ -7,11 +7,177 @@ from tinydb_smartcache import SmartCacheTable
 import datetime
 import json
 
+from promise import Promise
+from promise.dataloader import DataLoader
+
+class SchemabytxIDLoader(DataLoader):
+    def batch_load_fn(self, keys):
+        # Here we return a promise that will result on the
+        # corresponding user for each key in keys
+        TXN = DbQuery()
+        result = db.get(TXN["data"]["txnMetadata"]["txnId"] == keys)
+        return Promise.resolve([result for key in keys])
+
+schemabytxid_loader = SchemabytxIDLoader()
+
+schemabytxid_loader.load(1).then(lambda schemabytxid: schemabytxid_loader.load(Schema.id))
+
+class SchemabyseqNoLoader(DataLoader):
+    def batch_load_fn(self, keys):
+        # Here we return a promise that will result on the
+        # corresponding user for each key in keys
+        TXN = DbQuery()
+        result = db.get(TXN["seqNo"] == keys[0])
+        return Promise.resolve([result for key in keys])
+
+schemabyseqno_loader = SchemabyseqNoLoader()
+
+schemabyseqno_loader.load(1).then(lambda schemabyseqno: schemabyseqno_loader.load(Schema.id))
+
+class DefinitionsbySchemaLoader(DataLoader):
+    def batch_load_fn(self, keys):
+        # Here we return a promise that will result on the
+        # corresponding user for each key in keys
+        # schemas = {schema.id: schema for schema in schema.objects.filter(id__in=keys)}
+        TXN = DbQuery()
+        print('defintions loader')
+        print(keys)
+        schema_txn = db.get(TXN["data"]["txnMetadata"]["txnId"] == keys[0])
+        print(schema_txn)
+        cred_def_txns = db.search(TXN["data"]["txn"]["data"]["ref"] == schema_txn["seqNo"])
+        print(cred_def_txns)
+
+        return Promise.resolve([cred_def_txns(id=key) for key in keys])
+
+definitions_by_schema_loader = DefinitionsbySchemaLoader()
+definitions_by_schema_loader.load(1).then(lambda definitions_by_schema_loader: definitions_by_schema_loader.load(Schema.id))
+
+class DefinitionsbySeqNoLoader(DataLoader):
+    def batch_load_fn(self, keys):
+        # Here we return a promise that will result on the
+        # corresponding user for each key in keys
+        # schemas = {schema.id: schema for schema in schema.objects.filter(id__in=keys)}
+        # print('defs loader1')
+        TXN = DbQuery()
+        # def_txns = db.search((TXN['data']['txn']['type'] == "101"))
+        # print(def_txns)
+        def_txns = db.search((TXN["data"]["txnMetadata"]["txnId"] == keys))
+        return Promise.resolve([def_txns for key in keys])
+
+definitionsbyseqno_loader = DefinitionsbySeqNoLoader()
+definitionsbyseqno_loader.load(1).then(lambda definitionsbyseqno: definitionsbyseqno_loader.load(Transaction.seqNo))
+
+class DefinitionsLoader(DataLoader):
+    def batch_load_fn(self, keys):
+        # Here we return a promise that will result on the
+        # corresponding user for each key in keys
+        # schemas = {schema.id: schema for schema in schema.objects.filter(id__in=keys)}
+        # print('defs loader1')
+        TXN = DbQuery()
+        # def_txns = db.search((TXN['data']['txn']['type'] == "101"))
+        # print(def_txns)
+        def_txns = db.search((TXN['data']['txn']['type'] == keys))
+        return Promise.resolve([def_txns for key in keys])
+
+definitions_loader = DefinitionsLoader()
+definitions_loader.load(1).then(lambda definitions: definitions_loader.load(Schema.id))
+
+class TXByIDLoader(DataLoader):
+    def batch_load_fn(self, keys):
+        # Here we return a promise that will result on the
+        # corresponding user for each key in keys
+        # schemas = {schema.id: schema for schema in schema.objects.filter(id__in=keys)}
+        print('txbyid loader loaded')
+        TXN = DbQuery()
+        # print(keys[0])
+        tx =  db.get(TXN['seqNo'] == keys[0])
+        # print(tx)
+        return Promise.resolve([tx for key in keys])
+
+txbyid_loader = TXByIDLoader()
+txbyid_loader.load(1).then(lambda txbyid: txbyid_loader.load())
+
+class TXLoader(DataLoader):
+    def batch_load_fn(self, keys):
+        # Here we return a promise that will result on the
+        # corresponding user for each key in keys
+        # schemas = {schema.id: schema for schema in schema.objects.filter(id__in=keys)}
+        print('tx loader loaded')
+        TXN = DbQuery()
+        print(keys)
+        if keys[0] == 1:
+            # return db.all()
+            # return Promise.resolve([db.all() for key in keys])
+            return Promise.resolve([db.all()])
+        else:
+            result = db.search(TXN["data"]["txn"]["metadata"]['from'] == keys)
+            # print(tx)
+            return Promise.resolve([result for key in keys])
+
+tx_loader = TXLoader()
+tx_loader.load(1).then(lambda tx: tx_loader.load())
+
+class DIDLoader(DataLoader):
+    def batch_load_fn(self, keys):
+        # Here we return a promise that will result on the
+        # corresponding user for each key in keys
+        # schemas = {schema.id: schema for schema in schema.objects.filter(id__in=keys)}
+        print('did loader loaded')
+        TXN = DbQuery()
+        print(len(keys))
+        if len(keys) == 1:
+            print('one key',keys[0])
+            result = db.get((TXN['data']['txn']['data']['dest'] == keys[0]) & (TXN['data']['txn']['type'] == "1"))
+            # print(result)
+        else:
+            print('two keys',keys)
+            result = db.search((TXN['data']['txn']['data']['dest'] == keys) & (TXN['data']['txn']['type'] == "1"))
+            # print(result)
+
+        return Promise.resolve([result for key in keys])
+
+did_loader = DIDLoader()
+did_loader.load(1).then(lambda did: did_loader.load(Query.did))
+
+class CreatedDIDLoader(DataLoader):
+    def batch_load_fn(self, keys):
+        # Here we return a promise that will result on the
+        # corresponding user for each key in keys
+        # schemas = {schema.id: schema for schema in schema.objects.filter(id__in=keys)}
+        print('createdid data loader')
+        TXN = DbQuery()
+        print(keys)
+        result = db.search((TXN['data']['txn']['data']['from'] == keys[0]) & (TXN['data']['txn']['type'] == "1"))
+        return Promise.resolve([result for key in keys])
+
+createddid_loader = CreatedDIDLoader()
+createddid_loader.load(1).then(lambda createddid: createddid_loader.load(Query.did))
+
+
+class EndorserDIDLoader(DataLoader):
+    def batch_load_fn(self, keys):
+        # Here we return a promise that will result on the
+        # corresponding user for each key in keys
+        # schemas = {schema.id: schema for schema in schema.objects.filter(id__in=keys)}
+        print('jouma')
+        print('did loader loaded')
+        print('keylen ',len(keys))
+        TXN = DbQuery()
+        if len(keys) == 1:
+            print('Keys 1=',keys)
+            result = db.get((TXN["data"]["txn"]["metadata"]["endorser"] == keys[0]))
+            print(result)
+        else:
+            print(keys)
+            result = db.search((TXN["data"]["txn"]["metadata"]["endorser"] == keys))
+        return Promise.resolve([result for key in keys])
+
+endorserdid_loader = EndorserDIDLoader()
+endorserdid_loader.load(1).then(lambda endorserdid: endorserdid_loader.load(Transaction.endorser))
+
 TinyDB.table_class = SmartCacheTable
 db = TinyDB('../ledger_data/indy_mainnet_tinydb.json'
             '', storage=CachingMiddleware(JSONStorage))
-
-
 
 class Transaction(Interface):
     class Meta:
@@ -22,6 +188,7 @@ class Transaction(Interface):
     endorser = Field(lambda: DID)
     author = Field(lambda: DID)
     txn_time = DateTime()
+
 
     def resolve_txn_type(parent, info):
         # return parent["data"]["txn"]["meta"]
@@ -80,26 +247,68 @@ class Transaction(Interface):
             return BaseTxn
 
     def resolve_endorser(parent, info):
-        # print("ENDORSER METADATA", parent["data"]["txn"]["metadata"])
+        # fp = open('test.json', 'a+')
+        # fp.write(json.dumps(parent["data"]["txn"]["metadata"]))
+        # fp.close()
         if 'endorser' in parent["data"]["txn"]["metadata"]:
             endorser = parent["data"]["txn"]["metadata"]["endorser"]
+            # print(endorser)
             # print("Endorser DID", endorser)
+            # print('did loader resolve_endorser1')
+            if endorser == None:
+                print('endorser == None')
+                pass
+            else:
+                # print('endorser is',endorser)
+                try:
+                    # return CreatedDIDLoader.load(endorser)
+                    return EndorserDIDLoader.load('Uvb86cUzmdgZ8AfbN176tc')
+                except:
+                    # print('fokkit',endorser)
+                    # return EndorserDIDLoader.load('Uvb86cUzmdgZ8AfbN176tc')
+                    return None
+            # return DIDLoader.load(endorser)
+            # TXN = DbQuery()
+            #
+            # return db.get((TXN['data']['txn']['data']['dest'] == endorser))
 
-            TXN = DbQuery()
-            return db.get((TXN['data']['txn']['data']['dest'] == endorser))
-
-        else:
-            TXN = DbQuery()
-            from_did = parent["data"]["txn"]["metadata"]['from']
-            # print(from_did)
-            return db.get((TXN['data']['txn']['data']['dest'] == from_did) & (TXN['data']['txn']['type'] == "1"))
+        # elif 'from' in parent["data"]["txn"]["metadata"]:
+        #         # TXN = DbQuery()
+        #         # print(parent["data"])
+        #         # print(parent["data"]["txn"]["metadata"])
+        #         print('parent',parent)
+        #         from_did = parent["data"]["txn"]["metadata"]['from']
+        #         print('from_did',from_did)
+        #         # print(from_did)
+        #         print('did loader resolve_endorser2')
+        #         test = did_loader.load(from_did)
+        #         print(test)
+        #         return test
+        #         # return did_loader.load(from_did)
+        #         # return db.get((TXN['data']['txn']['data']['dest'] == from_did) & (TXN['data']['txn']['type'] == "1"))
+        # else:
+        #     # TXN = DbQuery()
+        #     # print(parent["data"])
+        #     # print(parent["data"]["txn"]["metadata"])
+        #     print('parent', parent)
+        #     dest_did = parent["data"]["txn"]["data"]['dest']
+        #     print('from_did', dest_did)
+        #     # print(from_did)
+        #     print('did loader resolve_endorser2')
+        #     test = did_loader.load(dest_did)
+        #     print(test)
+        #     return test
+        #     # return did_loader.load(from_did)
+        #     # return db.get((TXN['data']['txn']['data']['dest'] == from_did) & (TXN['data']['txn']['type'] == "1"))
 
     def resolve_author(parent, info):
         if 'from' in parent["data"]["txn"]["metadata"]:
             TXN = DbQuery()
             from_did = parent["data"]["txn"]["metadata"]['from']
             # print(from_did)
-            return db.get((TXN['data']['txn']['data']['dest'] == from_did) & (TXN['data']['txn']['type'] == "1"))
+            # print('did loader resolve_author')
+            return did_loader.load(from_did)
+            # return db.get((TXN['data']['txn']['data']['dest'] == from_did) & (TXN['data']['txn']['type'] == "1"))
         else:
             return None
 
@@ -118,7 +327,6 @@ class TransactionConnection(relay.Connection):
     def resolve_count(root, info):
         return len(root.edges)
 
-
 class Attribute(ObjectType):
     class Meta:
         interfaces = (relay.Node, Transaction)
@@ -128,9 +336,11 @@ class Attribute(ObjectType):
     # attrib_txn = Field(lambda: AttribTxn)
 
     def resolve_did(parent, info):
-        TXN = DbQuery()
-        result = db.get((TXN['data']['txn']['data']['dest'] == parent["dest"]) & (TXN['data']['txn']['type'] == "1"))
-        return result['data']['txn']['data']
+        print('did loader resolve_did_attrib')
+        return did_loader.load(parent["dest"])
+        # TXN = DbQuery()
+        # result = db.get((TXN['data']['txn']['data']['dest'] == parent["dest"]) & (TXN['data']['txn']['type'] == "1"))
+        # return result['data']['txn']['data']
 
     def resolve_raw(parent, info):
         try:
@@ -156,13 +366,6 @@ class AttributeConnection(relay.Connection):
     def resolve_count(root, info):
         return len(root.edges)
 
-
-
-
-
-
-
-
 class CredDef(ObjectType):
     class Meta:
         interfaces = (relay.Node, Transaction)
@@ -184,12 +387,11 @@ class CredDef(ObjectType):
         return "revocation" in parent["data"]["txn"]["data"]["data"]
 
     def resolve_schema(parent, info):
-        TXN = DbQuery()
-        schema_txn = db.get(TXN["seqNo"] == parent["data"]["txn"]["data"]["ref"])
-        return schema_txn
-
-
-
+        print('schemabyseqno loader resolve')
+        return schemabyseqno_loader.load(parent["data"]["txn"]["data"]["ref"])
+        # TXN = DbQuery()
+        # schema_txn = db.get(TXN["seqNo"] == parent["data"]["txn"]["data"]["ref"])
+        # return schema_txn
 
 class CredDefConnection(relay.Connection):
     class Meta:
@@ -198,7 +400,6 @@ class CredDefConnection(relay.Connection):
     count = Int()
     def resolve_count(root, info):
         return len(root.edges)
-
 
 class Schema(ObjectType):
     class Meta:
@@ -231,19 +432,30 @@ class Schema(ObjectType):
 
 
     def resolve_definitions(parent, info, **kwargs):
-        TXN = DbQuery()
+        print('definitions loader resolve')
+        print(parent["data"]["txnMetadata"]["txnId"])
+        # return definitions_loader.load(parent.id)
+        print(parent.id)
 
-        schema_txn = db.get(TXN["data"]["txnMetadata"]["txnId"] == parent["data"]["txnMetadata"]["txnId"])
+        # TXN = DbQuery()
+        #
+        print('schemabytxid loader resolve')
+        schema_txn = schemabytxid_loader.load(parent["data"]["txnMetadata"]["txnId"])
+        # schema_txn = db.get(TXN["data"]["txnMetadata"]["txnId"] == parent["data"]["txnMetadata"]["txnId"])
+        #
+        # cred_def_txns = db.search(TXN["data"]["txn"]["data"]["ref"] == schema_txn["seqNo"])
+        print('definitions loader resolve')
 
-        cred_def_txns = db.search(TXN["data"]["txn"]["data"]["ref"] == schema_txn["seqNo"])
-
-        return cred_def_txns
+        return definitionsbyseqno_loader.load(schema_txn["seqNo"])
+        # return cred_def_txns
 
     def resolve_definitions_count(parent, info):
-        TXN = DbQuery()
+        # TXN = DbQuery()
 
-        schema_txn = db.get(TXN["data"]["txnMetadata"]["txnId"] == parent["data"]["txnMetadata"]["txnId"])
+        # schema_txn = db.get(TXN["data"]["txnMetadata"]["txnId"] == parent["data"]["txnMetadata"]["txnId"])
+        print('schemabytxid loader resolve')
 
+        schema_txn = schemabytxid_loader.load(parent["data"]["txnMetadata"]["txnId"])
         return db.count(TXN["data"]["txn"]["data"]["ref"] == schema_txn["seqNo"])
 
 class SchemaConnection(relay.Connection):
@@ -253,9 +465,6 @@ class SchemaConnection(relay.Connection):
 
     def resolve_count(root, info):
         return len(root.edges)
-
-
-
 
 class BaseTxn(ObjectType):
     class Meta:
@@ -308,14 +517,23 @@ class DID(ObjectType):
         return parent['data']['txn']['data']["verkey"]
 
     def resolve_did(parent, info):
-        return parent['data']['txn']['data']['dest']
+        print('parent is', str(parent))
+        try:
+            print('parent dest is',parent['data']['txn']['data']['dest'])
+            return parent['data']['txn']['data']['dest']
+        # else:
+        #     return None
+        except:
+            return None
 
     def resolve_created_dids(parent, info):
-        TXN = DbQuery()
-
-        did_txns = db.search((TXN["data"]["txn"]["metadata"]['from'] == parent['data']['txn']['data']["dest"]) & (TXN["data"]["txn"]["type"] == "1"))
-
-        return did_txns
+        print('created did resolvers')
+        return CreatedDIDLoader.load(parent['data']['txn']['data']["dest"])
+        # TXN = DbQuery()
+        #
+        # did_txns = db.search((TXN["data"]["txn"]["metadata"]['from'] == parent['data']['txn']['data']["dest"]) & (TXN["data"]["txn"]["type"] == "1"))
+        #
+        # return did_txns
 
     def resolve_created_dids_count(parent, info):
         TXN = DbQuery()
@@ -411,6 +629,8 @@ class Query(ObjectType):
         return schema_txns
 
     def definitions(self, info, **kwargs):
+        # print('doing it')
+        # return definitions_loader.load()
         TXN = DbQuery()
         def_txns = db.search((TXN['data']['txn']['type'] == "101"))
 
@@ -424,35 +644,52 @@ class Query(ObjectType):
         else:
             return db.all()
 
+        # print('tx loader resolve')
+        # if "author" in kwargs:
+        #     print('2')
+        #     return tx_loader.load(kwargs["author"])
+        # else:
+        #     print('3')
+        #     return tx_loader.load(0)
+
     def resolve_get_txn_by_id(self,info, seqNo):
-        TXN = DbQuery()
-        return db.get(TXN['seqNo'] == seqNo)
+        print('txid loader resolve')
+        tx = txbyid_loader.load(seqNo)
+        print(tx)
+        return tx
+        # TXN = DbQuery()
+        # return db.get(TXN['seqNo'] == seqNo)
 
     def resolve_did(self,info, did):
-        TXN = DbQuery()
-        result = db.get((TXN['data']['txn']['data']['dest'] == did) & (TXN['data']['txn']['type'] == "1"))
-        return result
+        print('did loader resolve_query_did')
+        # TXN = DbQuery()
+        # result = db.get((TXN['data']['txn']['data']['dest'] == did) & (TXN['data']['txn']['type'] == "1"))
+        # return result
+        return did_loader.load(did)
 
     def resolve_get_schema(self,info, id):
         ## TODO Extract tx time from metadata
-        TXN = DbQuery()
-        result = db.get(TXN["data"]["txnMetadata"]["txnId"] == id)
-
-        return result
+        # TXN = DbQuery()
+        # result = db.get(TXN["data"]["txnMetadata"]["txnId"] == id)
+        # return result
+        print('schemabytxid loader resolve')
+        return schemabytxid_loader.load(id)
 
     def resolve_get_definition(self,info, id):
         ## TODO Extract tx time from metadata
-        TXN = DbQuery()
-        result = db.get(TXN["data"]["txnMetadata"]["txnId"] == id)
-
-        return result
+        print('definitions loader resolve')
+        return definitionsbyseqno_loader.load(id)
+        # TXN = DbQuery()
+        # result = db.get(TXN["data"]["txnMetadata"]["txnId"] == id)
+        #
+        # return result
 
 schema = GqSchema(query=Query, types=[BaseTxn, DID, Schema, CredDef, DIDConnection, Attribute, TransactionConnection, SchemaConnection, CredDefConnection])
 
 introspection_dict = schema.introspect()
 
 schema_introspection = introspection_dict
-print(schema_introspection)
+# print(schema_introspection)
 
 # Print the schema in the console
 # print(json.dumps(introspection_dict))
