@@ -443,7 +443,7 @@ class Schema(ObjectType):
         schema_txn = schemabytxid_loader.load(parent["data"]["txnMetadata"]["txnId"])
         # schema_txn = db.get(TXN["data"]["txnMetadata"]["txnId"] == parent["data"]["txnMetadata"]["txnId"])
         #
-        # cred_def_txns = db.search(TXN["data"]["txn"]["data"]["ref"] == schema_txn["seqNo"])
+        # cred_def_txns = db.search(TXN["data"]["txn"]["data"]["ref"] == parent["seqNo"])
         print('definitions loader resolve')
 
         return definitionsbyseqno_loader.load(schema_txn["seqNo"])
@@ -609,7 +609,7 @@ class Query(ObjectType):
         return nym_txns
 
 
-    def schemas(self, info, **kwargs):
+    def resolve_schemas(self, info, **kwargs):
         TXN = DbQuery()
         schema_txns = None
         ## TODO need a better way to handle multiple args into a single query
@@ -628,7 +628,7 @@ class Query(ObjectType):
 
         return schema_txns
 
-    def definitions(self, info, **kwargs):
+    def resolve_definitions(self, info, **kwargs):
         # print('doing it')
         # return definitions_loader.load()
         TXN = DbQuery()
