@@ -2,7 +2,7 @@ interface Transaction {
     id: ID!
     seqNo: String!
     type: String!
-    time: String
+    time: String!
     endorser: DID
     author: DID!
 
@@ -12,7 +12,7 @@ type DID implements Transaction {
     id: ID!
     seqNo: String!
     type: String!
-    time: String
+    time: String!
     endorser: DID
     author: DID!
     did: String!
@@ -33,7 +33,7 @@ type CredDef implements Transaction {
     id: ID!
     seqNo: String!
     type: String!
-    time: String
+    time: String!
     endorser: DID
     author: DID!
     isRevocable: Boolean!
@@ -44,7 +44,7 @@ type Schema implements Transaction {
     id: ID!
     seqNo: String!
     type: String!
-    time: String
+    time: String!
     endorser: DID
     author: DID!
     name: String!
@@ -55,11 +55,13 @@ type Schema implements Transaction {
 
 type Attribute implements Transaction {
     id: ID!
+
     seqNo: String!
     type: String!
-    time: String
+    time: String!
     endorser: DID
     author: DID!
     endpoint: String
     raw: String
 }
+
