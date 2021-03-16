@@ -98,6 +98,27 @@ def resolve_author(item):
         return None
 
 # Create data using JSON.
+"""
+type AddDIDInput {
+seqNo: String!
+type: String!
+time: String!
+endorser: DIDRef
+author: DIDRef!
+did: String!
+verkey: String!
+role: String
+alias: String
+attribs: [AttributeRef]!
+authoredDefinitions: [CredDefRef]!
+authoredSchema: [SchemaRef]!
+authoredDids: [DIDRef]!
+endorsedDefinitions: [CredDefRef]!
+endorsedSchema: [SchemaRef]!
+endorsedDids: [DIDRef]!
+}
+"""
+
 def create_data(client):
     # Create a new transaction.
     print('in create data')
@@ -105,28 +126,57 @@ def create_data(client):
     # Create data.
     items = db.all()[100:105]
     for item in items:
-        # for item in db:
-        uid = item['seqNo']
-        seqNo = item['seqNo']
-        type = resolve_txn_type(item)
-        time = resolve_txn_time(item)
-        endorser = resolve_endorser(item)
-        author = resolve_author(item)
-        # print(seqNo,type,time,endorser,author)
+        # print(type(item))
+        # print(item)
         try:
-            p = {
-                'uid': '_:seqNo',
-                'dgraph.type': 'Transaction',
-                'seqNo': seqNo,
-                'type': type,
-                'time': time,
-                # 'endorser': endorser,
-                # 'author': author,
+            json_payload = {
+                'dgraph.type': 'AddDIDInput',
+                'seqNo': item['seqNo'],
+                'type': resolve_txn_type(item),
+                'time': resolve_txn_time(item),
+                'endorser': '',
+                'author': [{}],
+                'did': item['data']['txn']['data']['dest'],
+                'verkey': '',
+                # 'verkey': item['data']['txn']['data']["verkey"],
+                'role': '',
+                # 'role': item['data']['txn']['data']['role'],
+                'alias': '',
+                # 'alias': item['data']['txn']['data']['alias'],
+                'attribs': [],
+                'authoredDefinitions': [],
+                'authoredSchema': [],
+                'authoredDids': [],
+                'endorsedDefinitions': [],
+                'endorsedSchema': [],
+                'endorsedDids': [],
             }
-            # print('JSON UPDATE IS',p)
+            # p = {
+            #     'uid': '_:seqNo',
+            #     'dgraph.type': 'Transaction',
+            #     'seqNo': seqNo,
+            #     'type': type,
+            #     'time': time,
+            #     'endorser': [
+            #         {
+            #             'uid': '_:seqNo',
+            #             'dgraph.type': 'DID',
+            #             'endorser': endorser,
+            #         }
+            #     ],
+            #     'author': [
+            #         {
+            #             'uid': '_:seqNo',
+            #             'dgraph.type': 'DID',
+            #             'author': author,
+            #         }
+            #     ],
+            # }
+
+            print('JSON UPDATE IS',json_payload)
 
             # Run mutation.
-            response = txn.mutate(set_obj=p)
+            response = txn.mutate(set_obj=json_payload)
             # print('response is', response)
             # Commit transaction.
             txn.commit()
@@ -151,9 +201,9 @@ def main():
 
 
 if __name__ == '__main__':
-    try:
+    # try:
         main()
         print('DONE!')
-    except Exception as e:
+    # except Exception as e:
         # pass
-        print('Error: {}'.format(e))
+        # print('Error: {}'.format(e))
