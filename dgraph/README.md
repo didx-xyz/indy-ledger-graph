@@ -1,6 +1,6 @@
 # Simple Example Project
 
-Simple project demonstrating the use of [pydgraph], the official python client for Dgraph.
+Simple project demonstrating the use of [pydgraph], the official python client for Dgraph for `Hyperledger Indy`.
 
 [pydgraph]:https://github.com/dgraph-io/pydgraph
 
@@ -8,31 +8,21 @@ Simple project demonstrating the use of [pydgraph], the official python client f
 
 ### Start Dgraph
 
-Store the following content in `docker-compose.yml`. Then, run `docker-compose up` to
-set up the Dgraph cluster:
+Start dgraph from the command line with docker as below:
+`docker run -it -p 5080:5080 -p 6080:6080 -p 8080:8080 -p 9080:9080 -p 8000:8000 -v ~/dgraph:/dgraph --name dgraph dgraph/standalone:v20.11.0`
 
-```yml
-version: "3.2"
-services:
-  zero:
-    image: dgraph/dgraph:latest
-    restart: on-failure
-    command: dgraph zero --my=zero:5080
-  server:
-    image: dgraph/dgraph:latest
-    ports:
-      - 8080:8080
-      - 9080:9080
-    restart: on-failure
-    command: dgraph alpha --my=server:7080 --lru_mb=2048 --zero=zero:5080 --whitelist "${WHITELISTED}"
-```
-The "WHITELISTED" environment variable can be intiialized as described [in this post](https://discuss.dgraph.io/t/suggestion-for-how-to-add-docker-compose-network-to-whitelist/9600). We need to whitelist these IPs because the docker container runs with it's own IP address.
+Once you exit the docker command you need to remove the containers to run the command again with the command below:
+`docker stop dgraph`
 
 ## Install the Dependencies
 
 ```sh
 pip install -r requirements.txt
 ```
+
+## Create the Schema
+Run the following command to install the schema into the dgraph docker image
+`curl -X POST localhost:8080/admin/schema --data-binary '@schema.graphql'`
 
 ## Run the Sample Code
 
