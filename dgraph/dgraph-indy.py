@@ -9,7 +9,7 @@ from tinydb.middlewares import CachingMiddleware
 from tinydb_smartcache import SmartCacheTable
 
 TinyDB.table_class = SmartCacheTable
-db = TinyDB('../ledger_data/indy_mainnet_tinydb.json'
+db = TinyDB('../ledger_data/indy_buildernet_tinydb.json'
             '', storage=CachingMiddleware(JSONStorage))
 
 # Create a client stub.
@@ -97,6 +97,48 @@ def resolve_author(item):
     else:
         return None
 
+# Set schema.
+def set_schema(client):
+    schema = """
+        seqNo: @index(exact) .
+        type: string .
+        time: string .
+        endorser: [uid] .
+        author: [uid] .
+        did: string .
+        verkey: string .
+        role: string .
+        alias: string .
+        attribs: [uid] @reverse .
+        authoredDefinitions: [uid] @reverse .
+        authoredSchema: [uid] @reverse .
+        authoredDids: [uid] @reverse .
+        endorsedDefinitions: [uid] @reverse .
+        endorsedSchema: [uid] @reverse .
+        endorsedDids: [uid] @reverse .
+    
+    type DID {
+        id
+        seqNo
+        type
+        time
+        endorser
+        author
+        did
+        verkey
+        role
+        alias
+        attribs
+        authoredDefinitions
+        authoredSchema
+        authoredDids
+        endorsedDefinitions
+        endorsedSchema
+        endorsedDids
+    }
+    """
+    return client.alter(pydgraph.Operation(schema=schema))
+
 # Create data using JSON.
 """
 type AddDIDInput {
@@ -124,25 +166,35 @@ def create_data(client):
     print('in create data')
     txn = client.txn()
     # Create data.
-    items = db.all()[100:105]
-    for item in items:
+    for item in db:
         # print(type(item))
-        # print(item)
+        print(item['seqNo'])
+        if 'dest' in item['data']['txn']['data']:
+            did = item['data']['txn']['data']['dest']
+        elif 'from' in item['data']['txn']['data']:
+            did = item['data']['txn']['data']['from']
+
+        if 'verkey' in item['data']['txn']['data']:
+            verkey = item['data']['txn']['data']["verkey"]
+
+        if 'role' in item['data']['txn']['data']:
+            role = item['data']['txn']['data']['role']
+
+        if 'alias' in item['data']['txn']['data']:
+            alias = item['data']['txn']['data']['alias']
         try:
             json_payload = {
-                'dgraph.type': 'AddDIDInput',
+                # 'uid': '_:did',
+                'dgraph.type': 'DID',
                 'seqNo': item['seqNo'],
                 'type': resolve_txn_type(item),
                 'time': resolve_txn_time(item),
                 'endorser': '',
-                'author': [{}],
-                'did': item['data']['txn']['data']['dest'],
-                'verkey': '',
-                # 'verkey': item['data']['txn']['data']["verkey"],
-                'role': '',
-                # 'role': item['data']['txn']['data']['role'],
-                'alias': '',
-                # 'alias': item['data']['txn']['data']['alias'],
+                'author': [],
+                'did': did,
+                'verkey': verkey,
+                'role': role,
+                'alias': alias,
                 'attribs': [],
                 'authoredDefinitions': [],
                 'authoredSchema': [],
@@ -151,27 +203,6 @@ def create_data(client):
                 'endorsedSchema': [],
                 'endorsedDids': [],
             }
-            # p = {
-            #     'uid': '_:seqNo',
-            #     'dgraph.type': 'Transaction',
-            #     'seqNo': seqNo,
-            #     'type': type,
-            #     'time': time,
-            #     'endorser': [
-            #         {
-            #             'uid': '_:seqNo',
-            #             'dgraph.type': 'DID',
-            #             'endorser': endorser,
-            #         }
-            #     ],
-            #     'author': [
-            #         {
-            #             'uid': '_:seqNo',
-            #             'dgraph.type': 'DID',
-            #             'author': author,
-            #         }
-            #     ],
-            # }
 
             print('JSON UPDATE IS',json_payload)
 
@@ -179,31 +210,76 @@ def create_data(client):
             response = txn.mutate(set_obj=json_payload)
             # print('response is', response)
             # Commit transaction.
-            txn.commit()
+            # txn.commit()
 
             # Get uid of the outermost object (person named "Alice").
             # response.uids returns a map from blank node names to uids.
-            print('Created Transaction with uid = {}'.format(response.uids['seqNo']))
+            # print('Created Transaction with uid = {}'.format(response.uids['did']))
+            print('Created Transaction with seqNo = {} and DID {}'.format(item['seqNo'], did))
 
         finally:
             # Clean up. Calling this after txn.commit() is a no-op and hence safe.
             # print('discarding tx')
-            txn.discard()
+            # txn.discard()
+            pass
+
+    # txn.commit()
+
+# Query for data.
+def query_did(client):
+    # Run query.
+    query = """query all($a: string) {
+        all(func: eq(did, $a)) {
+            uid
+            id
+            seqNo
+            type
+            verkey
+        }
+    }"""
+
+    variables = {'$a': 'NMjQb59rKTJXKNqVYfcZFi'}
+    res = client.txn(read_only=True).query(query, variables=variables)
+    dids = json.loads(res.json)
+
+    # Print results.
+    print('Number of transactions with DID "NMjQb59rKTJXKNqVYfcZFi": {}'.format(len(dids['all'])))
 
 def main():
     client_stub = create_client_stub()
     client = create_client(client_stub)
     # drop_all(client)
+    # set_schema(client)
+    # query_did(client)  # query for DID
     create_data(client)
 
     # Close the client stub.
     client_stub.close()
 
 
+# def main():
+#     client_stub = pydgraph.DgraphClientStub('localhost:9080')
+#     client = pydgraph.DgraphClient(client_stub)
+#     txn = client.txn()
+#     print('Connection opened!')
+#     query = """{
+#       V as var(func: type(Org)) @filter(eq(OrgLocation, \"D\"))
+#     }"""
+#     nquad = """
+#       uid(V) * *  .
+#     """
+#     mutation = txn.create_mutation(del_nquads=nquad)
+#     request = txn.create_request(query=query, mutations=[mutation], commit_now=True)
+#     txn.do_request(request)
+#     print('Transaction executed!')
+#
+#     # Close the client stub.
+#     client_stub.close()
+
 if __name__ == '__main__':
-    # try:
+    try:
         main()
         print('DONE!')
-    # except Exception as e:
+    except Exception as e:
         # pass
-        # print('Error: {}'.format(e))
+        print('Error: {}'.format(e))
