@@ -9,7 +9,7 @@ from tinydb.middlewares import CachingMiddleware
 from tinydb_smartcache import SmartCacheTable
 
 TinyDB.table_class = SmartCacheTable
-db = TinyDB('../ledger_data/indy_buildernet_tinydb.json'
+db = TinyDB('../ledger_data/indy_mainnet_tinydb.json'
             '', storage=CachingMiddleware(JSONStorage))
 
 # Create a client stub.
@@ -165,43 +165,47 @@ def create_data(client):
     # Create a new transaction.
     print('in create data')
     txn = client.txn()
-    # Create data.
-    for item in db:
-        # print(type(item))
-        print(item['seqNo'])
-        if 'dest' in item['data']['txn']['data']:
-            did = item['data']['txn']['data']['dest']
-        elif 'from' in item['data']['txn']['data']:
-            did = item['data']['txn']['data']['from']
+    TXN = DbQuery()
+    item = db.get((TXN['data']['txn']['data']['dest'] == "UoFyxT8BAqotbkhiehxHCn") & (TXN['data']['txn']['type'] == "1"))
+    # # Create data.
+    # print(item)
+    # print(db)
+    # for item in db:
+    #     print(type(item))
+    print(item['seqNo'])
+    type =item["data"]["txn"]["type"]
+    print(type)
+    if type == "1":
+        did = item['data']['txn']['data']['dest']
+        # did = item['data']['txn']['data']['from']
 
-        if 'verkey' in item['data']['txn']['data']:
-            verkey = item['data']['txn']['data']["verkey"]
+        verkey = item['data']['txn']['data']["verkey"]
 
-        if 'role' in item['data']['txn']['data']:
-            role = item['data']['txn']['data']['role']
+        role = item['data']['txn']['data']['role']
 
-        if 'alias' in item['data']['txn']['data']:
-            alias = item['data']['txn']['data']['alias']
+        alias = item['data']['txn']['data']['alias']
+
+        print(did,verkey,role,alias)
+
         try:
             json_payload = {
                 # 'uid': '_:did',
-                'dgraph.type': 'DID',
-                'seqNo': item['seqNo'],
-                'type': resolve_txn_type(item),
-                'time': resolve_txn_time(item),
-                'endorser': '',
-                'author': [],
-                'did': did,
-                'verkey': verkey,
-                'role': role,
-                'alias': alias,
-                'attribs': [],
-                'authoredDefinitions': [],
-                'authoredSchema': [],
-                'authoredDids': [],
-                'endorsedDefinitions': [],
-                'endorsedSchema': [],
-                'endorsedDids': [],
+                'Transaction.seqNo': item['seqNo'],
+                'Transaction.type': resolve_txn_type(item),
+                'Transaction.time': resolve_txn_time(item),
+                'Transaction.endorser': None,
+                'Transaction.author': None,
+                'DID.did': did,
+                'DID.verkey': verkey,
+                'DID.role': role,
+                'DID.alias': alias,
+                'DID.attribs': [],
+                'DID.authoredDefinitions': [],
+                'DID.authoredSchema': [],
+                'DID.authoredDids': [],
+                'DID.endorsedDefinitions': [],
+                'DID.endorsedSchema': [],
+                'DID.endorsedDids': [],
             }
 
             print('JSON UPDATE IS',json_payload)
@@ -210,7 +214,7 @@ def create_data(client):
             response = txn.mutate(set_obj=json_payload)
             # print('response is', response)
             # Commit transaction.
-            # txn.commit()
+            txn.commit()
 
             # Get uid of the outermost object (person named "Alice").
             # response.uids returns a map from blank node names to uids.
@@ -220,8 +224,8 @@ def create_data(client):
         finally:
             # Clean up. Calling this after txn.commit() is a no-op and hence safe.
             # print('discarding tx')
-            # txn.discard()
-            pass
+            txn.discard()
+            # pass
 
     # txn.commit()
 
@@ -277,9 +281,9 @@ def main():
 #     client_stub.close()
 
 if __name__ == '__main__':
-    try:
-        main()
-        print('DONE!')
-    except Exception as e:
-        # pass
-        print('Error: {}'.format(e))
+    # try:
+    main()
+    print('DONE!')
+    # except Exception as e:
+    #     # pass
+    #     print('Error: {}'.format(e))
