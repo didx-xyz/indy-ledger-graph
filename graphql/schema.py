@@ -391,7 +391,7 @@ class Query(ObjectType):
         return nym_txns
 
 
-    def schemas(self, info, **kwargs):
+    def resolve_schemas(self, info, **kwargs):
         TXN = DbQuery()
         schema_txns = None
         ## TODO need a better way to handle multiple args into a single query
