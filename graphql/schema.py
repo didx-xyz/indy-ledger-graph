@@ -433,14 +433,14 @@ class Query(ObjectType):
         result = db.get((TXN['data']['txn']['data']['dest'] == did) & (TXN['data']['txn']['type'] == "1"))
         return result
 
-    def resolve_get_schema(self,info, id):
+    def resolve_schema(self,info, id):
         ## TODO Extract tx time from metadata
         TXN = DbQuery()
         result = db.get(TXN["data"]["txnMetadata"]["txnId"] == id)
 
         return result
 
-    def resolve_get_definition(self,info, id):
+    def resolve_definition(self,info, id):
         ## TODO Extract tx time from metadata
         TXN = DbQuery()
         result = db.get(TXN["data"]["txnMetadata"]["txnId"] == id)
